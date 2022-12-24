@@ -11,8 +11,8 @@ using namespace std;
 
 void displayGrid(void);
 void spawnFood(void);
-void moveSnake(vector<vector<int>> snake, char snakeLetter, vector<int> direction);
-vector<int> changeDirection(char pressed, vector<int> direction);
+void moveSnake(vector<vector<int>> snake, char snakeLetter);
+void changeDirection(char pressed);
 
 enum gridSize { height = 31, width = 31 };
 
@@ -29,7 +29,7 @@ vector<int> direction = RIGHT;
 vector<int> direction2 = LEFT;
 
 vector<vector<int>> snake = {vector<int>{14,14}};
-vector<vector<int>> snake2 = {vector<int>{10,0}};
+vector<vector<int>> snake2 = {vector<int>{10,10}};
 
 char snakeLetter = 'X';
 char snakeLetter2 = 'O';
@@ -52,12 +52,17 @@ int main(){
     init_pair(4, COLOR_WHITE, COLOR_WHITE);
     //Second snake player
     init_pair(5, COLOR_CYAN, COLOR_CYAN);
-
-
     
     spawnFood();
     
-    moveSnake(snake, snakeLetter, direction);
+    thread s2(moveSnake, snake2 ,snakeLetter2);
+    
+    s2.join();
+
+    moveSnake(snake, snakeLetter);
+    
+
+    endwin();
     }
 
 
@@ -109,36 +114,49 @@ void spawnFood(){
     displayGrid();
 }
 
-void moveSnake(vector<vector<int>> snake, char snakeLetter, vector<int> direction){
+void moveSnake(vector<vector<int>> snake, char snakeLetter){
     for(int point = 0; point < snake.size(); point++){
         grid[snake[point][0]][snake[point][1]] = ' ';
     }
+
     displayGrid();
 
-    if(snake[snake.size()-1][0] + direction[0] < 30 && snake[snake.size()-1][1] + direction[1] < 30){       
+    vector<int> curDirection;
+
+    if(snakeLetter == 'X'){
+        curDirection = direction;
+    }
+    else{
+        curDirection = direction2;
+    }
+
+    //If valid position continue game
+    if(snake[snake.size()-1][0] + curDirection[0] < 30 && snake[snake.size()-1][1] + curDirection[1] < 30 && snake[snake.size()-1][1] + curDirection[1] > 0 && snake[snake.size()-1][0] + curDirection[0] > 0){       
         if(snake.size() == 1){
-            snake[snake.size()-1][0] += direction[0];
-            snake[snake.size()-1][1] += direction[1];
+            snake[snake.size()-1][0] += curDirection[0];
+            snake[snake.size()-1][1] += curDirection[1];
         }
+        
         else{
             snake.erase(snake.begin());
 
             vector<int> swapFrontBack;
 
-            swapFrontBack.push_back(snake[snake.size()-1][0] + direction[0]);
-            swapFrontBack.push_back(snake[snake.size()-1][1] + direction[1]);
+            swapFrontBack.push_back(snake[snake.size()-1][0] + curDirection[0]);
+            swapFrontBack.push_back(snake[snake.size()-1][1] + curDirection[1]);
 
             snake.push_back(swapFrontBack);
         }
         
-    
-            
+     
     if(grid[snake[snake.size()-1][0]][snake[snake.size()-1][1]] == '*'){
         snake.insert(snake.begin(), snake[snake.size()-1]);
         spawnFood();
         }
     
     }
+
+    //If not valid end game
     else{
         exit(1);
     }
@@ -149,43 +167,49 @@ void moveSnake(vector<vector<int>> snake, char snakeLetter, vector<int> directio
     }
     displayGrid();
 
-    direction = changeDirection(getch(), direction);
+    changeDirection(getch());
     usleep(100000);
-    direction = changeDirection(getch(), direction);
+    changeDirection(getch());
 
-    if(grid[snake[snake.size()-1][0] + direction[0]][snake[snake.size()-1][1] + direction[1]] == snakeLetter){
+    if(snakeLetter == 'X'){
+        curDirection = direction;
+    }
+    else{
+        curDirection = direction2;
+    }
+    
+    if(grid[snake[snake.size()-1][0] + curDirection[0]][snake[snake.size()-1][1] + curDirection[1]] == snakeLetter){
         exit(1);
     }
-    moveSnake(snake, snakeLetter, direction);
+
+    moveSnake(snake, snakeLetter);
 }
 
-vector<int> changeDirection(char pressed, vector<int> direction){
+void changeDirection(char pressed){
     switch(pressed){
         case 'a':
-            return LEFT;
+            direction = LEFT;
             break;
         case 'w':
-            return UP;
+            direction = UP;
             break;
         case 's':
-            return DOWN;
+            direction = DOWN;
             break;
         case 'd':
-            return RIGHT;
+            direction = RIGHT;
             break;
         case 'j':
-            return LEFT;
+            direction2 = LEFT;
             break;
         case 'i':
-            return UP;
+            direction2 = UP;
             break;
         case 'k':
-            return DOWN;
+            direction2 = DOWN;
             break;
         case 'l':
-            return RIGHT;
+            direction2 = RIGHT;
             break;
-        default:
-            return direction; 
     }
 }
