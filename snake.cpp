@@ -6,7 +6,9 @@
 #include <time.h>
 #include <unistd.h>
 #include <thread>
+#include <mutex>
 
+std::mutex mu;
 using namespace std;
 
 void displayGrid(void);
@@ -16,6 +18,8 @@ void changeDirection(char pressed);
 
 enum gridSize { height = 31, width = 31 };
 
+std::mutex myMutex;
+
 vector<char> row(width, ' ');
 vector<vector<char>> grid(height, row);
 
@@ -24,17 +28,20 @@ vector<int> LEFT = {0,-1};
 vector<int> DOWN = {1,0};
 vector<int> UP = {-1,0};
 
+
+
 //Starting direction to be updated
 vector<int> direction = RIGHT;
 vector<int> direction2 = LEFT;
 
-vector<vector<int>> snake = {vector<int>{14,14}};
-vector<vector<int>> snake2 = {vector<int>{10,10}};
+vector<vector<int>> snake = {vector<int>{10,10}};
+vector<vector<int>> snake2 = {vector<int>{14,14}};
 
 char snakeLetter = 'X';
 char snakeLetter2 = 'O';
 
 int main(){
+    srand((unsigned)time(NULL));
     initscr();
     start_color();
     timeout(-1);
@@ -55,18 +62,18 @@ int main(){
     
     spawnFood();
     
-    thread s2(moveSnake, snake2 ,snakeLetter2);
-    
-    s2.join();
+    thread s2(moveSnake, snake2, snakeLetter2);
 
     moveSnake(snake, snakeLetter);
     
+    s2.join();
 
     endwin();
     }
 
 
 void displayGrid(){
+    mu.lock();
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
             int color;
@@ -97,11 +104,10 @@ void displayGrid(){
         mvprintw(i, (width)*3, "\n");
     }
     refresh();
+    mu.unlock();
 }
 
 void spawnFood(){
-    srand((unsigned)time(NULL));
-
     int randomX = rand() % 30;
     int randomY = rand() % 30;
     while(grid[randomX][randomY] != ' '){
@@ -131,7 +137,7 @@ void moveSnake(vector<vector<int>> snake, char snakeLetter){
     }
 
     //If valid position continue game
-    if(snake[snake.size()-1][0] + curDirection[0] < 30 && snake[snake.size()-1][1] + curDirection[1] < 30 && snake[snake.size()-1][1] + curDirection[1] > 0 && snake[snake.size()-1][0] + curDirection[0] > 0){       
+    if(snake[snake.size()-1][0] + curDirection[0] < 30 && snake[snake.size()-1][1] + curDirection[1] < 30 && snake[snake.size()-1][1] + curDirection[1] > -1 && snake[snake.size()-1][0] + curDirection[0] > -1){       
         if(snake.size() == 1){
             snake[snake.size()-1][0] += curDirection[0];
             snake[snake.size()-1][1] += curDirection[1];
@@ -158,6 +164,14 @@ void moveSnake(vector<vector<int>> snake, char snakeLetter){
 
     //If not valid end game
     else{
+        if(snakeLetter == 'X'){
+            cout << "Matt Wins!" << endl;
+        }
+        else{
+            cout << "Hunter Wins!" << endl;
+        }
+
+        usleep(500000);
         exit(1);
     }
 
@@ -178,7 +192,14 @@ void moveSnake(vector<vector<int>> snake, char snakeLetter){
         curDirection = direction2;
     }
     
-    if(grid[snake[snake.size()-1][0] + curDirection[0]][snake[snake.size()-1][1] + curDirection[1]] == snakeLetter){
+    if(grid[snake[snake.size()-1][0] + curDirection[0]][snake[snake.size()-1][1] + curDirection[1]] == 'O' || grid[snake[snake.size()-1][0] + curDirection[0]][snake[snake.size()-1][1] + curDirection[1]] == 'X'){
+        if(grid[snake[snake.size()-1][0] + curDirection[0]][snake[snake.size()-1][1] + curDirection[1]] == 'O'){
+            cout << "Hunter Wins!" << endl;
+        }
+        else{
+            cout << "Matt Wins!" << endl;
+        }
+        usleep(500000);
         exit(1);
     }
 
@@ -188,27 +209,51 @@ void moveSnake(vector<vector<int>> snake, char snakeLetter){
 void changeDirection(char pressed){
     switch(pressed){
         case 'a':
+            if(direction == RIGHT){
+                break;
+            }
             direction = LEFT;
             break;
         case 'w':
+            if(direction == DOWN){
+                    break;
+                }
             direction = UP;
             break;
         case 's':
+            if(direction == UP){
+                    break;
+                }
             direction = DOWN;
             break;
         case 'd':
+            if(direction == LEFT){
+                    break;
+                }
             direction = RIGHT;
             break;
         case 'j':
+            if(direction == RIGHT){
+                break;
+            }
             direction2 = LEFT;
             break;
         case 'i':
+            if(direction == DOWN){
+                break;
+            }
             direction2 = UP;
             break;
         case 'k':
+            if(direction == UP){
+                break;
+            }
             direction2 = DOWN;
             break;
         case 'l':
+            if(direction == LEFT){
+                break;
+            }
             direction2 = RIGHT;
             break;
     }
